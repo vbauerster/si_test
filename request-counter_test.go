@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -29,10 +30,12 @@ func TestRequestCounter(t *testing.T) {
 		defer wg.Done()
 		resp, err := http.Get(srv.URL)
 		if err != nil {
-			t.FailNow()
+			t.Error(err)
 		}
-		count := parseRespBody(t, resp.Body)
-		resp.Body.Close()
+		count, err := parseRespBody(resp.Body)
+		if err != nil {
+			t.Error(err)
+		}
 		if count != 2 {
 			t.Errorf("expected count %d, got: %d\n", 2, count)
 		}
@@ -42,10 +45,12 @@ func TestRequestCounter(t *testing.T) {
 	time.Sleep(35 * time.Second)
 	resp, err := http.Get(srv.URL)
 	if err != nil {
-		t.FailNow()
+		t.Error(err)
 	}
-	count := parseRespBody(t, resp.Body)
-	resp.Body.Close()
+	count, err := parseRespBody(resp.Body)
+	if err != nil {
+		t.Error(err)
+	}
 	if count != numberOfReq+1 {
 		t.Errorf("expected count %d, got: %d\n", numberOfReq+1, count)
 	}
@@ -60,27 +65,27 @@ func parallelGet(t *testing.T, wg *sync.WaitGroup, testURL string, times int) {
 			defer wg.Done()
 			resp, err := http.Get(testURL)
 			if err != nil {
-				t.FailNow()
+				t.Errorf("http get %q error: %v\n", testURL, err)
 			}
 			resp.Body.Close()
 		}()
 	}
 }
 
-func parseRespBody(t *testing.T, r io.Reader) int {
+func parseRespBody(r io.ReadCloser) (int, error) {
+	if r == nil {
+		return -1, errors.New("unexpected body content")
+	}
+	defer r.Close()
 	var buf bytes.Buffer
 	_, err := io.Copy(&buf, r)
 	if err != nil {
-		t.FailNow()
+		return -1, err
 	}
 
 	split := strings.Split(buf.String(), ":")
 	if len(split) < 2 {
-		t.FailNow()
+		return -1, errors.New("unexpected body content")
 	}
-	count, err := strconv.Atoi(strings.TrimSpace(split[1]))
-	if err != nil {
-		t.FailNow()
-	}
-	return count
+	return strconv.Atoi(strings.TrimSpace(split[1]))
 }
