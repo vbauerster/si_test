@@ -45,6 +45,7 @@ func main() {
 			wg.Done()
 		}()
 		<-quit
+		// http graceful shutdown, available since go v1.8
 		log.Println("Shutting down...")
 		if err := srv.Shutdown(context.Background()); err != nil {
 			log.Printf("Shutdown error: %v\n", err)
