@@ -19,10 +19,10 @@ func (rc *requestCounter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// log.Println(r.URL.Path)
 	unow := time.Now().Unix()
 	back60 := unow - 60
-	tmp := rc.TimeStamps[:0]
 	var total int
 
 	rc.Lock()
+	tmp := rc.TimeStamps[:0]
 	for _, s := range rc.TimeStamps {
 		if s < back60 {
 			continue
