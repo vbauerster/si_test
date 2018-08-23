@@ -28,7 +28,7 @@ func main() {
 	flag.Parse()
 
 	rc := new(requestCounter)
-	if err := loadCounter(rc, statePath); err != nil && !os.IsNotExist(err) {
+	if err := rc.loadState(statePath); err != nil && !os.IsNotExist(err) {
 		log.Fatalf("State load error: %v\n", err)
 	}
 
@@ -102,16 +102,14 @@ func (rc *requestCounter) persist(fileName string) error {
 	return err
 }
 
-func loadCounter(rc *requestCounter, fileName string) error {
-	fd, err := os.Open(fileName)
+func (rc *requestCounter) loadState(fileName string) error {
+	src, err := os.Open(fileName)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if e := fd.Close(); e != nil {
-			log.Printf("Close %q error: %v", fd.Name(), e)
-		}
-	}()
-
-	return json.NewDecoder(fd).Decode(rc)
+	err = json.NewDecoder(src).Decode(rc)
+	if e := src.Close(); err == nil {
+		err = e
+	}
+	return err
 }
