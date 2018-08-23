@@ -70,14 +70,13 @@ type requestCounter struct {
 
 func (rc *requestCounter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println(r.URL.Path)
-	unow := time.Now().Unix()
-	back60 := unow - 60
 	var total int
+	unow := time.Now().Unix()
 
 	rc.Lock()
 	tmp := rc.TimeStamps[:0]
 	for _, s := range rc.TimeStamps {
-		if s < back60 {
+		if s < unow-60 {
 			continue
 		}
 		tmp = append(tmp, s)
